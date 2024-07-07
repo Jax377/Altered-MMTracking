@@ -1,9 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
+import torch
+import mmcv
+import numpy as np
 
 from mmdet.models import build_detector
 
-from mmtrack.core import outs2results
+from mmtrack.core import outs2results, results2outs
 from ..builder import MODELS, build_motion, build_reid, build_tracker
 from .base import BaseMultiObjectTracker
 
@@ -104,7 +107,29 @@ class DeepSORT(BaseMultiObjectTracker):
             # TODO: support batch inference
             det_bboxes = det_bboxes[0]
             det_labels = det_labels[0]
+
+            det_results = self.detector.simple_test(
+                img, img_metas, rescale=rescale)
+            assert len(det_results) == 1, 'Batch inference is not supported.'
+            det_results = det_results[0]
+            mask_results = None
+            # if det_results[1] is not None:
+            #     mask_results = det_results[1]
+
             num_classes = self.detector.roi_head.bbox_head.num_classes
+
+            mask_shape = (2160, 4096)
+            masks = None
+            if mask_results is not None:
+                assert mask_shape is not None
+                mask_height, mask_width = mask_shape
+                mask_results = mmcv.concat_list(mask_results)
+                if len(mask_results) == 0:
+                    masks = np.zeros((0, mask_height, mask_width)).astype(bool)
+                else:
+                    masks = np.stack(mask_results, axis=0)
+                det_masks = torch.from_numpy(masks).to(img)
+
         elif hasattr(self.detector, 'bbox_head'):
             outs = self.detector.bbox_head(x)
             result_list = self.detector.bbox_head.get_bboxes(
@@ -116,7 +141,7 @@ class DeepSORT(BaseMultiObjectTracker):
         else:
             raise TypeError('detector must has roi_head or bbox_head.')
 
-        track_bboxes, track_labels, track_ids, count_tracks = self.tracker.track(
+        track_bboxes, track_labels, track_ids, count_tracks = self.tracker.track(  # , track_masks = self.tracker.track(
             img=img,
             img_metas=img_metas,
             model=self,
@@ -125,17 +150,22 @@ class DeepSORT(BaseMultiObjectTracker):
             labels=det_labels,
             frame_id=frame_id,
             rescale=rescale,
+            # masks=det_masks,
             **kwargs)
 
         track_results = outs2results(
             bboxes=track_bboxes,
             labels=track_labels,
+            # masks=track_masks,
             ids=track_ids,
             num_classes=num_classes)
+
         det_results = outs2results(
-            bboxes=det_bboxes, labels=det_labels, num_classes=num_classes)
+            bboxes=det_bboxes, labels=det_labels, num_classes=num_classes)#, masks=det_masks)
 
         return dict(
             det_bboxes=det_results['bbox_results'],
             track_bboxes=track_results['bbox_results'],
+            # det_masks=det_results['mask_results'],
+            # track_masks=track_results['mask_results'],
             count_tracks=count_tracks)

@@ -67,17 +67,17 @@ class ByteTrack(BaseMultiObjectTracker):
         assert len(det_results) == 1, 'Batch inference is not supported.'
         det_results = det_results[0]
         bbox_results = det_results[0]
-        # mask_results = None
-        # if det_results[1] is not None:
-        #     mask_results = det_results[1]
+        mask_results = None
+        if det_results[1] is not None:
+            mask_results = det_results[1]
         num_classes = len(bbox_results)
 
-        outs_det = results2outs(bbox_results=bbox_results)  # mask_results=mask_results, mask_shape=(2160, 4096))
+        outs_det = results2outs(bbox_results=bbox_results, mask_results=mask_results, mask_shape=(2160, 4096))
         det_bboxes = torch.from_numpy(outs_det['bboxes']).to(img)
-        # det_masks = torch.from_numpy(outs_det['masks']).to(img)
+        det_masks = torch.from_numpy(outs_det['masks']).to(img)
         det_labels = torch.from_numpy(outs_det['labels']).to(img).long()
 
-        track_bboxes, track_labels, track_ids, count_tracks = self.tracker.track(  # , track_masks
+        track_bboxes, track_labels, track_ids, count_tracks, track_masks = self.tracker.track(
             img=img,
             img_metas=img_metas,
             model=self,
@@ -85,23 +85,23 @@ class ByteTrack(BaseMultiObjectTracker):
             labels=det_labels,
             frame_id=frame_id,
             rescale=rescale,
-           # masks=det_masks,
+            masks=det_masks,
             **kwargs)
 
         track_results = outs2results(
             bboxes=track_bboxes,
             labels=track_labels,
-          #  masks=track_masks,
+            masks=track_masks,
             ids=track_ids,
             num_classes=num_classes)
 
         det_results = outs2results(
-            bboxes=det_bboxes, labels=det_labels, num_classes=num_classes)  # masks=det_masks,
+            bboxes=det_bboxes, labels=det_labels, num_classes=num_classes, masks=det_masks)
 
         return dict(
             det_bboxes=det_results['bbox_results'],
             track_bboxes=track_results['bbox_results'],
-            # det_masks=det_results['mask_results'],
-            # track_masks=track_results['mask_results']
+            det_masks=det_results['mask_results'],
+            track_masks=track_results['mask_results'],
             count_tracks=count_tracks
         )

@@ -168,7 +168,7 @@ class ByteTracker(BaseTracker):
               labels,
               frame_id,
               rescale=False,
-          #    masks=None,
+              masks=None,
               **kwargs,
               ):
         """Tracking forward function.
@@ -196,7 +196,7 @@ class ByteTracker(BaseTracker):
         if self.empty or bboxes.size(0) == 0:
             valid_inds = bboxes[:, -1] > self.init_track_thr
             bboxes = bboxes[valid_inds]
-        #    masks = masks[valid_inds]
+            masks = masks[valid_inds]
             labels = labels[valid_inds]
             num_new_tracks = bboxes.size(0)
             ids = torch.arange(self.num_tracks,
@@ -214,7 +214,7 @@ class ByteTracker(BaseTracker):
             first_det_inds = bboxes[:, -1] > self.obj_score_thrs['high']
             first_det_bboxes = bboxes[first_det_inds]
             first_det_labels = labels[first_det_inds]
-        #    first_det_masks = masks[first_det_inds]
+            first_det_masks = masks[first_det_inds]
             first_det_ids = ids[first_det_inds]
 
             # get the detection bboxes for the second association
@@ -222,7 +222,7 @@ class ByteTracker(BaseTracker):
                 bboxes[:, -1] > self.obj_score_thrs['low'])
             second_det_bboxes = bboxes[second_det_inds]
             second_det_labels = labels[second_det_inds]
-         #   second_det_masks = masks[second_det_inds]
+            second_det_masks = masks[second_det_inds]
             second_det_ids = ids[second_det_inds]
 
             # 1. use Kalman Filter to predict current location
@@ -246,13 +246,13 @@ class ByteTracker(BaseTracker):
 
             first_match_det_bboxes = first_det_bboxes[valid]
             first_match_det_labels = first_det_labels[valid]
-         #   first_match_det_masks = first_det_masks[valid]
+            first_match_det_masks = first_det_masks[valid]
             first_match_det_ids = first_det_ids[valid]
             assert (first_match_det_ids > -1).all()
 
             first_unmatch_det_bboxes = first_det_bboxes[~valid]
             first_unmatch_det_labels = first_det_labels[~valid]
-        #    first_unmatch_det_masks = first_det_masks[~valid]
+            first_unmatch_det_masks = first_det_masks[~valid]
             first_unmatch_det_ids = first_det_ids[~valid]
             assert (first_unmatch_det_ids == -1).all()
 
@@ -296,9 +296,9 @@ class ByteTracker(BaseTracker):
                 (first_match_det_labels, first_unmatch_det_labels), dim=0)
             labels = torch.cat((labels, second_det_labels[valid]), dim=0)
 
-            # masks = torch.cat(
-            #     (first_match_det_masks, first_unmatch_det_masks), dim=0)
-            # masks = torch.cat((masks, second_det_masks[valid]), dim=0)
+            masks = torch.cat(
+                (first_match_det_masks, first_unmatch_det_masks), dim=0)
+            masks = torch.cat((masks, second_det_masks[valid]), dim=0)
 
             ids = torch.cat((first_match_det_ids, first_unmatch_det_ids),
                             dim=0)
@@ -313,4 +313,4 @@ class ByteTracker(BaseTracker):
 
         self.update(ids=ids, bboxes=bboxes, labels=labels, frame_ids=frame_id)
         count = self.count
-        return bboxes, labels, ids, count#, masks
+        return bboxes, labels, ids, count, masks

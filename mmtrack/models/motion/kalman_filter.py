@@ -61,7 +61,7 @@ class KalmanFilter(object):
         mean_pos = measurement
         mean_vel = np.zeros_like(mean_pos)
         if self.direction == 'right':
-            mean_vel[0] = 5.
+            mean_vel[0] = 5. # This must be adjusted, depending on usecase
         elif self.direction == 'left':
             mean_vel[0] = -5.
         mean = np.r_[mean_pos, mean_vel]

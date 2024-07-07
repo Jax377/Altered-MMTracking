@@ -105,6 +105,7 @@ class SortTracker(BaseTracker):
               labels,
               frame_id,
               rescale=False,
+              # masks=None,
               **kwargs):
         """Tracking forward function.
 
@@ -137,6 +138,7 @@ class SortTracker(BaseTracker):
 
         valid_inds = bboxes[:, -1] > self.obj_score_thr
         bboxes = bboxes[valid_inds]
+        # masks = masks[valid_inds]
         labels = labels[valid_inds]
 
         if self.empty or bboxes.size(0) == 0:
@@ -273,4 +275,4 @@ class SortTracker(BaseTracker):
             frame_ids=frame_id)
 
         counts = self.count
-        return bboxes, labels, ids, counts
+        return bboxes, labels, ids, counts# , masks
