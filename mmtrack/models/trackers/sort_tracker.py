@@ -217,7 +217,6 @@ class SortTracker(BaseTracker):
             active_ids = [
                 id for id in self.ids if id not in ids
             ]
-
             if len(active_ids) > 0:  # Mahalanobis distance matching [Optional for "+" matching]
                 active_dets = torch.nonzero(ids == -1).squeeze(1)
 
